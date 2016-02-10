@@ -2,11 +2,13 @@
 
 # Copyright Puzzlebox Productions, LLC (2010-2014)
 #
-# This code is released under the GNU Pulic License (GPL) version 2
-# For more information please refer to http://www.gnu.org/copyleft/gpl.html
+# This code is released under the GNU Affero Pulic License (AGPL) version 3
+# For more information please refer to https://www.gnu.org/licenses/agpl.html
+#
+# Author: Steve Castellotti <sc@puzzlebox.io>
 
 __changelog__ = """\
-Last Update: 2014.02.02
+Last Update: 2014.02.10
 """
 
 ### IMPORTS ###
@@ -33,8 +35,17 @@ if not configuration.ENABLE_PYSIDE:
 	print "INFO: [Synapse:ThinkGear:Server] Using PyQt4 module"
 	from PyQt4 import QtCore, QtGui, QtNetwork
 
+
+if configuration.ENABLE_CLOUDBRAIN:
+	from brainsquared.publishers.PikaPublisher import PikaPublisher
+
+
 import Puzzlebox.Synapse.Server as synapse_server
 import Puzzlebox.Synapse.ThinkGear.Protocol as thinkgear_protocol
+
+
+#from brainsquared.modules.sources import ThinkGearConnector as NeuroskyConnector
+
 
 #####################################################################
 # Globals
@@ -137,13 +148,19 @@ DEFAULT_RESPONSE_MESSAGE = DEFAULT_SIGNAL_LEVEL_MESSAGE
 
 class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server):
 	
-	def __init__(self, log, \
-		          server_interface=SERVER_INTERFACE, \
-		          server_port=SERVER_PORT, \
-		          device_model=None, \
-		          device_address=THINKGEAR_DEVICE_SERIAL_PORT, \
-		          emulate_headset_data=ENABLE_SIMULATE_HEADSET_DATA, \
-		          DEBUG=DEBUG, \
+	def __init__(self, log,
+		          server_interface=SERVER_INTERFACE,
+		          server_port=SERVER_PORT,
+		          device_model=None,
+		          device_address=THINKGEAR_DEVICE_SERIAL_PORT,
+		          emulate_headset_data=ENABLE_SIMULATE_HEADSET_DATA,
+		          server_host=configuration.RABBITMQ_HOST,
+		          server_username=configuration.RABBITMQ_USERNAME,
+		          server_password=configuration.RABBITMQ_PASSWORD,
+		          publisher_user=configuration.PUBLISHER_USERNAME,
+		          publisher_device=configuration.PUBLISHER_DEVICE,
+		          publisher_metric=configuration.PUBLISHER_METRIC,
+		          DEBUG=DEBUG, 
 		          parent=None):
 		
 		QtCore.QThread.__init__(self,parent)
@@ -205,6 +222,61 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 				                    QtCore.SIGNAL("timeout()"), \
 				                    self.emulationEvent)
 			self.emulationTimer.start(MESSAGE_FREQUENCY_TIMER)
+			
+			
+			
+		# Cloudbrain
+		
+		if configuration.ENABLE_CLOUDBRAIN:
+			self.attention_threshold = 70
+
+			self.data = {
+				'poorSignalLevel': 200, 'attention': 0, 'meditation': 0, 'delta': 0,
+				'theta': 0, 'lowAlpha': 0, 'highAlpha': 0, 'lowBeta': 0, 'highBeta': 0,
+				'lowGamma': 0, 'highGamma': 0, 'label': 0
+			}
+
+			# TODO change variable names, make specific to Rabbit MQ
+			self.host = server_host
+			self.username = server_username
+			self.pwd = server_password
+
+			self.user = publisher_user
+			self.device = publisher_device
+			self.metric = publisher_metric
+
+			# Send data efficiently in one packet
+			self.buffer_size = 10
+			self.data_buffer = []
+			self.routing_key = "%s:%s:%s" % (self.user, self.device, self.metric)
+			self.pub = PikaPublisher(self.host, self.username, self.pwd)
+			self.pub.connect()
+			self.pub.register(self.routing_key)
+
+			# Also send each metric individually in cloudbrain format
+			self.metrics = ['timestamp', 'eeg', 'poorSignalLevel', 'attention',
+								'meditation', 'delta', 'theta', 'lowAlpha', 'highAlpha',
+								'lowBeta', 'highBeta', 'lowGamma', 'highGamma']
+			self.publishers = {}
+			self.routing_keys = {}
+			for metric in self.metrics:
+				self.routing_keys[metric] = "%s:neurosky:%s" % (self.user, metric)
+				self.publishers[metric] = PikaPublisher(self.host,
+																	self.username,
+																	self.pwd)
+
+				self.publishers[metric].connect()
+				self.publishers[metric].register(self.routing_keys[metric])
+
+			# Send FFT
+			self.fft_routing_key = "%s:%s:%s" % (self.user, self.device, "fft")
+			self.fft_pub = PikaPublisher(self.host, self.username, self.pwd)
+			self.fft_pub.connect()
+			self.fft_pub.register(self.fft_routing_key)
+
+			# Final setup
+			self.configureEEG()
+			displayCSVHeader()
 	
 	
 	##################################################################
@@ -215,6 +287,7 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 			
 			self.serial_device = \
 				thinkgear_protocol.SerialDevice( \
+				#self.serial_device = NeuroskyConnector.SerialDevice(
 					self.log, \
 					device_address=self.device_address, \
 					DEBUG=self.DEBUG, \
@@ -228,6 +301,7 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 		
 		self.protocol = \
 			thinkgear_protocol.puzzlebox_synapse_protocol_thinkgear( \
+			#NeuroskyConnector.puzzlebox_synapse_protocol_thinkgear( \
 				self.log, \
 				self.serial_device, \
 				device_model=self.device_model, \
@@ -426,6 +500,10 @@ server will start transmitting any headset data.'''
 		if (packet != {}):
 			self.packet_queue.append(packet)
 			
+			
+			if configuration.ENABLE_CLOUDBRAIN:
+				self.processPacketCloudbrain(packet)
+			
 			if COMMUNICATION_MODE == 'Emit Signal':
 				self.emitSendPacketSignal()
 			
@@ -435,6 +513,104 @@ server will start transmitting any headset data.'''
 				if (self.parent != None):
 					#self.parent.processPacketThinkGear(packet)
 					self.parent.processPacketEEG(packet)
+	
+	
+	##################################################################
+	
+	def processPacketCloudbrain(self, packet):
+		
+		if 'rawEeg' in packet.keys():
+
+			# packet['channel_0'] = packet.pop('rawEeg')
+			packet['eeg'] = packet.pop('rawEeg')
+
+			packet['poorSignalLevel'] = self.data['poorSignalLevel']
+			packet['attention'] = self.data['attention']
+			packet['meditation'] = self.data['meditation']
+			packet['delta'] = self.data['delta']
+			packet['theta'] = self.data['theta']
+			packet['lowAlpha'] = self.data['lowAlpha']
+			packet['highAlpha'] = self.data['highAlpha']
+			packet['lowBeta'] = self.data['lowBeta']
+			packet['highBeta'] = self.data['highBeta']
+			packet['lowGamma'] = self.data['lowGamma']
+			packet['highGamma'] = self.data['highGamma']
+			packet['label'] = self.data['label']
+
+			# TODO Restore for Cloudbrain compatability
+			#if self.DEBUG > 1:
+				#print packet
+			#else:
+				#displayCSV(packet)
+
+			if len(self.data_buffer) > self.buffer_size:
+				# Publish efficiently in one packet
+				#self.pub.publish(self.routing_key, self.data_buffer)
+
+				# Also send each metric individually in cloudbrain format
+				for metric in self.metrics:
+					buffer_out = []
+					for packet in self.data_buffer:
+						metric_data = {
+						"timestamp": packet["timestamp"],
+						"channel_0": packet[metric]
+						}
+						buffer_out.append(metric_data)
+					self.publishers[metric].publish(self.routing_keys[metric],
+																buffer_out)
+
+				# Also send fft
+				buffer_out = []
+				for packet in self.data_buffer:
+					metric_data = {
+						"timestamp": packet["timestamp"],
+						"channel_0": packet['lowAlpha'],
+						"channel_1": packet['highAlpha'],
+						"channel_2": packet['lowBeta'],
+						"channel_3": packet['highBeta'],
+						"channel_4": packet['lowGamma'],
+						"channel_5": packet['highGamma'],
+						"channel_6": packet['delta'],
+						"channel_7": self.data['theta'],
+					}
+					buffer_out.append(metric_data)
+				self.fft_pub.publish(self.fft_routing_key, buffer_out)
+
+				if self.DEBUG > 1:
+					print self.data_buffer
+				self.data_buffer = []
+				if self.DEBUG > 1:
+					print "Publishing:",
+					print self.routing_key
+			else:
+				self.data_buffer.append(packet)
+
+		else:
+
+			if 'poorSignalLevel' in packet.keys():
+				self.data['poorSignalLevel'] = packet['poorSignalLevel']
+
+			if 'eegPower' in packet.keys():
+				self.data['delta'] = packet['eegPower']['delta']
+				self.data['theta'] = packet['eegPower']['theta']
+				self.data['lowAlpha'] = packet['eegPower']['lowAlpha']
+				self.data['highAlpha'] = packet['eegPower']['highAlpha']
+				self.data['lowBeta'] = packet['eegPower']['lowBeta']
+				self.data['highBeta'] = packet['eegPower']['highBeta']
+				self.data['lowGamma'] = packet['eegPower']['lowGamma']
+				self.data['highGamma'] = packet['eegPower']['highGamma']
+
+			if 'eSense' in packet.keys():
+				if 'attention' in packet['eSense'].keys():
+					self.data['attention'] = packet['eSense']['attention']
+
+					if self.data['attention'] >= self.attention_threshold:
+						self.data['label'] = 1
+					else:
+						self.data['label'] = 0
+
+				if 'meditation' in packet['eSense'].keys():
+					self.data['meditation'] = packet['eSense']['meditation']
 	
 	
 	##################################################################
@@ -629,6 +805,7 @@ server will start transmitting any headset data.'''
 		
 		if callThreadQuit:
 			QtCore.QThread.quit(self)
+			#self.join() # threading module
 		
 		if self.parent == None:
 			sys.exit()
@@ -640,3 +817,46 @@ server will start transmitting any headset data.'''
 		
 		#self.exitThread()
 
+
+##################################################################
+# Functions
+##################################################################
+
+def displayCSVHeader():
+	print "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" % (
+		'timestamp',
+		'eeg',
+		'poorSignalLevel',
+		'attention',
+		'meditation',
+		'delta',
+		'theta',
+		'lowAlpha',
+		'highAlpha',
+		'lowBeta',
+		'highBeta',
+		'lowGamma',
+		'highGamma',
+		'label',
+	)
+
+
+
+def displayCSV(packet):
+	print "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" % (
+		packet['timestamp'],
+		packet['eeg'],
+		packet['poorSignalLevel'],
+		packet['attention'],
+		packet['meditation'],
+		packet['delta'],
+		packet['theta'],
+		packet['lowAlpha'],
+		packet['highAlpha'],
+		packet['lowBeta'],
+		packet['highBeta'],
+		packet['lowGamma'],
+		packet['highGamma'],
+		packet['label'],
+	)
+ 

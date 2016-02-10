@@ -2,12 +2,8 @@
 
 # Copyright Puzzlebox Productions, LLC (2010-2016)
 #
-# Ported from Puzzlebox Synapse
-# ThinkGear code imported from Puzzlebox.Synapse.ThinkGear.Protocol
-# http://puzzlebox.io
-#
 # This code is released under the GNU Affero Pulic License (AGPL) version 3
-# For more information please refer to http://www.gnu.org/copyleft/gpl.html
+# For more information please refer to https://www.gnu.org/licenses/agpl.html
 #
 # Author: Steve Castellotti <sc@puzzlebox.io>
 
