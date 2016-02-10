@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright Puzzlebox Productions, LLC (2010-2012)
+# Copyright Puzzlebox Productions, LLC (2010-2016)
 #
-# This code is released under the GNU Pulic License (GPL) version 2
+# Ported from Puzzlebox Synapse
+# ThinkGear code imported from Puzzlebox.Synapse.ThinkGear.Protocol
+# http://puzzlebox.io
+#
+# This code is released under the GNU Affero Pulic License (AGPL) version 3
 # For more information please refer to http://www.gnu.org/copyleft/gpl.html
+#
+# Author: Steve Castellotti <sc@puzzlebox.io>
 
 __changelog__ = """
-Last Update: 2012.05.06
+Last Update: 2016.02.10
 """
 
 __todo__ = """
@@ -85,28 +91,88 @@ Linux Bluetooth serial protocol profile example:
 import sys, time
 import signal
 import serial
+import copy
 
 if ((sys.platform != 'win32') and \
     (sys.platform != 'darwin')):
 	import bluetooth
 
 
-import Puzzlebox.Synapse.Configuration as configuration
+try:
+	import Puzzlebox.Synapse.Configuration as configuration
+except:
 
-if configuration.ENABLE_PYSIDE:
-	try:
-		import PySide as PyQt4
-		from PySide import QtCore
-	except Exception, e:
-		print "ERROR: Exception importing PySide:",
-		print e
-		configuration.ENABLE_PYSIDE = False
-	else:
-		print "INFO: [Synapse:ThinkGear:Protocol] Using PySide module"
+	class Configuration():
+		
+		def __init__(self):
+		
+			# Ported from Puzzlebox.Synapse.Configuration
+			
+			self.DEBUG = 1
+			
+			self.ENABLE_QT = False
+			self.ENABLE_PYSIDE = False
+			
+			self.DEFAULT_THINKGEAR_DEVICE_SERIAL_PORT_WINDOWS = 'COM2'
+			self.DEFAULT_THINKGEAR_DEVICE_SERIAL_PORT_LINUX = '/dev/rfcomm0'
 
-if not configuration.ENABLE_PYSIDE:
-	print "INFO: [Synapse:ThinkGear:Protocol] Using PyQt4 module"
-	from PyQt4 import QtCore
+			if (sys.platform == 'win32'):
+				self.THINKGEAR_DEVICE_SERIAL_PORT = self.DEFAULT_THINKGEAR_DEVICE_SERIAL_PORT_WINDOWS
+			else:
+				self.THINKGEAR_DEVICE_SERIAL_PORT = self.DEFAULT_THINKGEAR_DEVICE_SERIAL_PORT_LINUX
+
+			self.THINKGEAR_EEG_POWER_BAND_ORDER = ['delta', \
+														'theta', \
+														'lowAlpha', \
+														'highAlpha', \
+														'lowBeta', \
+														'highBeta', \
+														'lowGamma', \
+														'highGamma']
+			
+	configuration = Configuration()
+
+
+if configuration.ENABLE_QT:
+	if configuration.ENABLE_PYSIDE:
+		try:
+			import PySide
+			from PySide import QtCore
+			#import QtCore.QThread as Thread
+			Thread = PySide.QtCore.QThread
+		except Exception, e:
+			print "ERROR: Exception importing PySide:",
+			print e
+			configuration.ENABLE_PYSIDE = False
+			#print "INFO: [Synapse:ThinkGear:Protocol] Using PyQt4 module"
+			#from PyQt4 import QtCore
+		else:
+			print "INFO: [Synapse:ThinkGear:Protocol] Using PySide module"
+	
+	
+	if not configuration.ENABLE_PYSIDE:
+		try:
+			print "INFO: [Synapse:ThinkGear:Protocol] Using PyQt4 module"
+			from PyQt4 import QtCore
+		except:
+			configuration.ENABLE_QT = False
+			#import threading
+			#Thread = threading.Thread
+
+#else:
+if not configuration.ENABLE_QT:
+	#import threading
+	#import threading.Thread as Thread
+	import threading
+	Thread = threading.Thread
+
+#if not configuration.ENABLE_PYSIDE:
+	#try:
+		#print "INFO: [Synapse:ThinkGear:Protocol] Using PyQt4 module"
+		#from PyQt4 import QtCore
+	#except:
+		#import threading
+		#Thread = threading.Thread
 
 
 #####################################################################
@@ -157,7 +223,9 @@ DEBUG_PACKET_COUNT = 1024
 # Classes
 #####################################################################
 
-class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
+#class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
+#class puzzlebox_synapse_protocol_thinkgear(threading.Thread):
+class puzzlebox_synapse_protocol_thinkgear(Thread):
 	
 	def __init__(self, log, \
 			       serial_device, \
@@ -165,7 +233,16 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 			       DEBUG=DEBUG, \
 			       parent=None):
 		
-		QtCore.QThread.__init__(self,parent)
+		##QtCore.QThread.__init__(self,parent)
+		##threading.Thread.__init__ (self)
+		#if configuration.ENABLE_PYSIDE:
+			#Thread.__init__ (self, parent)
+		#else:
+			#Thread.__init__ (self)
+		try:
+			QtCore.QThread.__init__(self, parent)
+		except:
+			Thread.__init__ (self)
 		
 		self.log = log
 		self.DEBUG = DEBUG
@@ -176,124 +253,28 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 		
 		self.device = None
 		self.buffer = ''
-		self.payload_timestamp = time.time()
+		#self.payload_timestamp = time.time()
+		self.payload_timestamp = int(time.time() * 1000000)
 		
 		self.device = serial_device
-		self.auto_connect_timestamp = time.time()
+		#self.auto_connect_timestamp = time.time()
+		self.auto_connect_timestamp = int(time.time() * 1000000)
 		
 		self.data_packet = {}
 		self.data_packet['eegPower'] = {}
 		self.data_packet['eSense'] = {}
+		
+		self.current_signal = 200
+		self.current_attention = 0
+		self.current_meditaiton = 0
+		#self.detection_threshold = 70
+		#self.current_detection = 0
 		
 		#self.packet_count = 0
 		#self.bad_packets = 0
 		#self.session_start_timestamp = time.time()
 		
 		self.keep_running = True
-	
-	
-	##################################################################
-	
-	def communicateWithHandsfreeProfile(self):
-		
-		#"AT+CKPD=200" - Indicates a Bluetooth button press
-		#"AT+VGM=" - Indicates a microphone volume change
-		#"AT+VGS=" - Indicates a speakerphone volume change
-		#"AT+BRSF=" - The Headset is asking what features are supported
-		#"AT+CIND?" - The Headset is asking about the indicators that are signaled
-		#"AT+CIND=?" - The Headset is asking about the test indicators
-		#"AT+CMER=" - The Headset is asking which indicates are registered for updates
-		#"ATA" - When an incoming call has been answered, usually a Bluetooth button press
-		#"AT+CHUP" - When a call has been hung up, usually a Bluetooth button press
-		#"ATD>" - The Headset is requesting the local device to perform a memory dial
-		#"ATD" - The Headset is requesting to dial the number
-		#"AT+BLDN" - The Headset is requesting to perform last number dialed
-		#"AT+CCWA=" - The Headset has enabled call waiting
-		#"AT+CLIP=" - The Headset has enabled CLI (Calling Line Identification)
-		#"AT+VTS=" - The Headset is asking to send DTMF digits
-		#"AT+CHLD=" - The Headset is asking to put the call on Hold
-		#"AT+BVRA=" - The Headset is requesting voice recognition
-		#"ATH" - Call hang-up
-		
-		#self.device.write('\x29')
-		#self.device.write('AT+BRSF=24\r\n')
-		
-		buffer = ''
-		
-		while True:
-			reply = self.device.read()
-			
-			if (len(reply) != 0):
-				if DEBUG > 1:
-					print reply
-				buffer += reply
-			
-			if buffer == "AT+BRSF=24\r":
-				print "--> Received:",
-				print buffer
-				response = '\r\nOK\r\n'
-				print "<-- Sending:",
-				print response.replace('\r\n', '')
-				self.device.write(response)
-				buffer = ''
-			
-			elif buffer == 'AT+CIND=?\r':
-				print "--> Received:",
-				print buffer
-				# first field indicates that we have cellular service [0-1]
-				# second field indicates that we're in a call (0 for false) [0-1]
-				# third field indicates the current call setup (0 for idle) [0-3]
-				response = '\r\n+CIND: 1,0,0\r\n'
-				print "<-- Sending:",
-				print response.replace('\r\n', '')
-				self.device.write(response)
-				response = '\r\nOK\r\n'
-				print "<-- Sending:",
-				print response.replace('\r\n', '')
-				self.device.write(response)
-				buffer = ''
-			
-			elif buffer == 'AT+CMER=3, 0, 0, 1\r':
-				print "--> Received:",
-				print buffer
-				response = '\r\nOK\r\n'
-				print "<-- Sending:",
-				print response.replace('\r\n', '')
-				self.device.write(response)
-				response = '\r\n+CIEV:2,1\r\n'
-				print "<-- Sending:",
-				print response.replace('\r\n', '')
-				self.device.write(response)
-				response = '\r\n+CIEV:3,0\r\n'
-				print "<-- Sending:",
-				print response.replace('\r\n', '')
-				self.device.write(response)
-				buffer = ''
-			
-			elif buffer == 'AT+VGS=15\r':
-				print "--> Received:",
-				print buffer
-				response = '\r\nOK\r\n'
-				print "<-- Sending:",
-				print response.replace('\r\n', '')
-				self.device.write(response)
-				buffer = ''
-			
-			elif buffer == 'AT+VGM=08\r':
-				print "--> Received:",
-				print buffer
-				response = '\r\nOK\r\n'
-				print "<-- Sending:",
-				print response.replace('\r\n', '')
-				self.device.write(response)
-				buffer = ''
-				
-				
-				self.exitThread()
-				#self.keep_running = False
-				#self.device.stop()
-				#QtCore.QThread.quit(self)
-				#sys.exit()
 	
 	
 	##################################################################
@@ -476,6 +457,8 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 					print "poorSignalLevel:",
 					print poor_signal_quality
 				
+				self.current_signal = copy.copy(poor_signal_quality)
+				
 				packet_update['poorSignalLevel'] = poor_signal_quality
 			
 			
@@ -484,6 +467,13 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 				if self.DEBUG > 1:
 					print "attention:",
 					print attention
+				
+				self.current_attention = copy.copy(attention)
+				
+				#if (attention > self.detection_threshold):
+					#self.current_detection = 1
+				#else:
+					#self.current_detection = 0
 				
 				packet_update['eSense'] = {}
 				packet_update['eSense']['attention'] = attention
@@ -552,7 +542,8 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 			
 			
 			elif code == 'd1':
-				current_time = time.time()
+				#current_time = time.time()
+				current_time = int(time.time() * 1000000)
 				if current_time - self.auto_connect_timestamp > \
 					THINKGEAR_DEVICE_AUTOCONNECT_INTERVAL:
 					if self.DEBUG:
@@ -563,7 +554,8 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 			
 			
 			elif code == 'd2':
-				current_time = time.time()
+				#current_time = time.time()
+				current_time = int(time.time() * 1000000)
 				if current_time - self.auto_connect_timestamp > \
 					THINKGEAR_DEVICE_AUTOCONNECT_INTERVAL:
 					if self.DEBUG:
@@ -574,7 +566,8 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 			
 			
 			elif code == 'd3':
-				current_time = time.time()
+				#current_time = time.time()
+				current_time = int(time.time() * 1000000)
 				if current_time - self.auto_connect_timestamp > \
 					THINKGEAR_DEVICE_AUTOCONNECT_INTERVAL:
 					if self.DEBUG:
@@ -585,7 +578,8 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 			
 			
 			elif code == 'd4':
-				current_time = time.time()
+				#current_time = time.time()
+				current_time = int(time.time() * 1000000)
 				if current_time - self.auto_connect_timestamp > \
 					THINKGEAR_DEVICE_AUTOCONNECT_INTERVAL:
 					if self.DEBUG:
@@ -724,7 +718,8 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 			if (byte != PROTOCOL_SYNC):
 				continue
 			
-			self.payload_timestamp = time.time()
+			#self.payload_timestamp = time.time()
+			self.payload_timestamp = int(time.time() * 1000000)
 			
 			# Parse [PLENGTH] byte
 			
@@ -921,20 +916,36 @@ class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
 		
 		
 		if callThreadQuit:
-			QtCore.QThread.quit(self)
+			#if configuration.ENABLE_PYSIDE:
+			if configuration.ENABLE_QT:
+				#QtCore.QThread.quit(self)
+				Thread.quit(self)
+			else:
+				self.join()
 
 
 #####################################################################
 #####################################################################
 
-class SerialDevice(QtCore.QThread):
+#class SerialDevice(QtCore.QThread):
+#class SerialDevice(threading.Thread):
+class SerialDevice(Thread):
 	
 	def __init__(self, log, \
 			       device_address=THINKGEAR_DEVICE_SERIAL_PORT, \
 			       DEBUG=DEBUG, \
 			       parent=None):
 		
-		QtCore.QThread.__init__(self, parent)
+		##QtCore.QThread.__init__(self, parent)
+		##threading.Thread.__init__ (self)
+		#if configuration.ENABLE_PYSIDE:
+			#QtCore.QThread.__init__(self, parent)
+		#else:
+			#Thread.__init__ (self)
+		try:
+			QtCore.QThread.__init__(self, parent)
+		except:
+			Thread.__init__ (self)
 		
 		self.log = log
 		self.DEBUG = DEBUG
@@ -957,17 +968,26 @@ class SerialDevice(QtCore.QThread):
 				print self.device_address
 			self.device = self.initializeSerialDevice()
 		
-		self.buffer_check_timer = QtCore.QTimer()
-		QtCore.QObject.connect(self.buffer_check_timer, \
-		                       QtCore.SIGNAL("timeout()"), \
-		                       self.checkBuffer)
-		self.buffer_check_timer.start(DEVICE_BUFFER_CHECK_TIMER)
+		#if configuration.ENABLE_PYSIDE:
+		if configuration.ENABLE_QT:
+			try:
+				self.buffer_check_timer = QtCore.QTimer()
+				QtCore.QObject.connect(self.buffer_check_timer, \
+											QtCore.SIGNAL("timeout()"), \
+											self.checkBuffer)
+				self.buffer_check_timer.start(DEVICE_BUFFER_CHECK_TIMER)
+				
+				self.read_buffer_check_timer = QtCore.QTimer()
+				QtCore.QObject.connect(self.read_buffer_check_timer, \
+											QtCore.SIGNAL("timeout()"), \
+											self.checkReadBuffer)
+			except Exception, e:
+				if self.DEBUG > 1:
+					print "ERROR: Failed to interface with QtCore.QTimer():",
+					print e
+		else:
+			pass
 		
-		self.read_buffer_check_timer = QtCore.QTimer()
-		QtCore.QObject.connect(self.read_buffer_check_timer, \
-		                       QtCore.SIGNAL("timeout()"), \
-		                       self.checkReadBuffer)
-#		self.read_buffer_check_timer.start(DEVICE_READ_BUFFER_CHECK_TIMER)
 		
 		self.keep_running = True
 	
@@ -994,6 +1014,8 @@ class SerialDevice(QtCore.QThread):
 	##################################################################
 	
 	def initializeSerialDevice(self):
+		
+		device = None
 		
 		baudrate = DEFAULT_SERIAL_BAUDRATE
 		bytesize = 8
@@ -1068,7 +1090,12 @@ class SerialDevice(QtCore.QThread):
 				                    xonxoff = init_software_flow_control, \
 				                    rtscts = init_rts_cts_flow_control, \
 				                    timeout = timeout)
-		
+			
+			
+			device.flushInput()
+			#device.flushOutput()
+			
+			
 		except Exception, e:
 			if self.DEBUG:
 				print "ERROR:",
@@ -1076,10 +1103,6 @@ class SerialDevice(QtCore.QThread):
 				print self.device_address
 				#sys.exit()
 				return(None)
-		
-		
-		device.flushInput()
-		#device.flushOutput()
 		
 		
 		#if self.DEBUG:
@@ -1114,7 +1137,8 @@ class SerialDevice(QtCore.QThread):
 		if self.DEBUG > 1:
 			print "INFO: Read buffer timer check"
 		
-		current_time = time.time()
+		#current_time = time.time()
+		current_time = int(time.time() * 1000000)
 		
 		if ((self.parent != None) and \
 		    (self.parent.protocol != None)):
@@ -1144,13 +1168,18 @@ class SerialDevice(QtCore.QThread):
 		# (1/512) * 1000 = 1.9531250
 		while len(self.buffer) < length:
 			try:
-				QtCore.QThread.msleep(2)
+				#if configuration.ENABLE_PYSIDE:
+				if configuration.ENABLE_QT:
+					#QtCore.QThread.msleep(2)
+					Thread.msleep(2)
+				else:
+					time.sleep(0.002)
 			except Exception, e:
 				#if self.DEBUG:
 					#print "ERROR: Protocol failed to call QtCore.QThread.msleep(2) in read():",
 					#print e
 				pass
-			
+		
 		bytes = self.buffer[:length]
 		
 		self.buffer = self.buffer[length:]
@@ -1189,7 +1218,12 @@ class SerialDevice(QtCore.QThread):
 		
 		if callThreadQuit:
 			try:
-				QtCore.QThread.quit(self)
+				#if configuration.ENABLE_PYSIDE:
+				if configuration.ENABLE_QT:
+					#QtCore.QThread.quit(self)
+					Thread.quit(self)
+				else:
+					self.join()
 			except Exception, e:
 				if self.DEBUG:
 					print "ERROR: Protocol failed to call QtCore.QThread.quit(self) in exitThread():",

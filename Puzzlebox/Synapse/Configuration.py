@@ -25,6 +25,7 @@ if (sys.platform != 'win32'):
 		CONFIGURATION_FILE_PATH = \
 			os.path.join('/etc/puzzlebox_synapse', CONFIGURATION_FILE_PATH)
 
+ENABLE_QT = True
 ENABLE_PYSIDE = True
 #ENABLE_PYSIDE = False
 ENABLE_HCITOOL = False
