@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright Puzzlebox Productions, LLC (2010-2015)
+# Copyright Puzzlebox Productions, LLC (2010-2016)
 #
-# This code is released under the GNU Pulic License (GPL) version 2
-# For more information please refer to http://www.gnu.org/copyleft/gpl.html
+# This code is released under the GNU Affero Pulic License (AGPL) version 3
+# For more information please refer to https://www.gnu.org/licenses/agpl.html
 
-__changelog__ = """\
-Last Update: 2015.01.17
+__changelog__ = """
+Last Update: 2016.02.17
 """
 
 import os, sys
@@ -235,6 +235,25 @@ FLASH_SOCKET_POLICY_FILE = '''<?xml version="1.0"?>
    <site-control permitted-cross-domain-policies="all" />
    <allow-access-from domain="*" to-ports="%i" />
 </cross-domain-policy>%c''' % (THINKGEAR_SERVER_PORT, 0)
+
+
+#####################################################################
+# Rabbit MQ
+#####################################################################
+
+RABBITMQ_HOST = 'localhost'
+RABBITMQ_USERNAME = 'guest'
+RABBITMQ_PASSWORD = 'guest'
+PUBLISHER_USERNAME = 'brainsquared'
+PUBLISHER_DEVICE = 'neurosky'
+PUBLISHER_METRIC = 'mindwave'
+
+
+#####################################################################
+# Cloudbrain
+#####################################################################
+
+ENABLE_CLOUDBRAIN = True
 
 
 #####################################################################
