@@ -154,10 +154,10 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 		          device_model=None,
 		          device_address=THINKGEAR_DEVICE_SERIAL_PORT,
 		          emulate_headset_data=ENABLE_SIMULATE_HEADSET_DATA,
-		          server_host=configuration.RABBITMQ_HOST,
-		          server_username=configuration.RABBITMQ_USERNAME,
-		          server_password=configuration.RABBITMQ_PASSWORD,
-		          publisher_user=configuration.PUBLISHER_USERNAME,
+		          rabbitmq_host=configuration.RABBITMQ_HOST,
+		          rabbitmq_username=configuration.RABBITMQ_USERNAME,
+		          rabbitmq_password=configuration.RABBITMQ_PASSWORD,
+		          publisher_username=configuration.PUBLISHER_USERNAME,
 		          publisher_device=configuration.PUBLISHER_DEVICE,
 		          publisher_metric=configuration.PUBLISHER_METRIC,
 		          DEBUG=DEBUG, 
@@ -236,41 +236,40 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 				'lowGamma': 0, 'highGamma': 0, 'label': 0
 			}
 
-			# TODO change variable names, make specific to Rabbit MQ
-			self.host = server_host
-			self.username = server_username
-			self.pwd = server_password
+			self.rabbitmq_host = rabbitmq_host
+			self.rabbitmq_username = rabbitmq_username
+			self.rabbitmq_password = rabbitmq_password
 
-			self.user = publisher_user
-			self.device = publisher_device
-			self.metric = publisher_metric
+			self.publisher_username = publisher_username
+			self.publisher_device = publisher_device
+			self.publisher_metric = publisher_metric
 
 			# Send data efficiently in one packet
 			self.buffer_size = 10
 			self.data_buffer = []
-			self.routing_key = "%s:%s:%s" % (self.user, self.device, self.metric)
-			self.pub = PikaPublisher(self.host, self.username, self.pwd)
+			self.routing_key = "%s:%s:%s" % (self.publisher_username, self.publisher_device, self.publisher_metric)
+			self.pub = PikaPublisher(self.rabbitmq_host, self.rabbitmq_username, self.rabbitmq_password)
 			self.pub.connect()
 			self.pub.register(self.routing_key)
 
 			# Also send each metric individually in cloudbrain format
-			self.metrics = ['timestamp', 'eeg', 'poorSignalLevel', 'attention',
-								'meditation', 'delta', 'theta', 'lowAlpha', 'highAlpha',
-								'lowBeta', 'highBeta', 'lowGamma', 'highGamma']
+			self.metrics = ['timestamp', 'eeg', 'poorSignalLevel', 'attention', \
+			                'meditation', 'delta', 'theta', 'lowAlpha', 'highAlpha', \
+			                'lowBeta', 'highBeta', 'lowGamma', 'highGamma']
 			self.publishers = {}
 			self.routing_keys = {}
 			for metric in self.metrics:
-				self.routing_keys[metric] = "%s:neurosky:%s" % (self.user, metric)
-				self.publishers[metric] = PikaPublisher(self.host,
-																	self.username,
-																	self.pwd)
+				self.routing_keys[metric] = "%s:neurosky:%s" % (self.publisher_username, metric)
+				self.publishers[metric] = PikaPublisher(self.rabbitmq_host,
+				                                        self.rabbitmq_username,
+				                                        self.rabbitmq_password)
 
 				self.publishers[metric].connect()
 				self.publishers[metric].register(self.routing_keys[metric])
 
 			# Send FFT
-			self.fft_routing_key = "%s:%s:%s" % (self.user, self.device, "fft")
-			self.fft_pub = PikaPublisher(self.host, self.username, self.pwd)
+			self.fft_routing_key = "%s:%s:%s" % (self.publisher_username, self.publisher_device, "fft")
+			self.fft_pub = PikaPublisher(self.rabbitmq_host, self.rabbitmq_username, self.rabbitmq_password)
 			self.fft_pub.connect()
 			self.fft_pub.register(self.fft_routing_key)
 

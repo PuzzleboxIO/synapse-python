@@ -7,7 +7,7 @@
 # For more information please refer to https://www.gnu.org/licenses/agpl.html
 
 __changelog__ = """
-Last Update: 2016.02.17
+Last Update: 2016.02.11
 """
 
 import os, sys
@@ -254,7 +254,6 @@ PUBLISHER_METRIC = 'mindwave'
 #####################################################################
 
 ENABLE_CLOUDBRAIN = True
-#ENABLE_CLOUDBRAIN = False
 
 
 #####################################################################
