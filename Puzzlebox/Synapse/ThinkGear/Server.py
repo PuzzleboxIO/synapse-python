@@ -513,6 +513,10 @@ server will start transmitting any headset data.'''
 				if (self.parent != None):
 					#self.parent.processPacketThinkGear(packet)
 					self.parent.processPacketEEG(packet)
+			
+			
+			#if configuration.ENABLE_CLOUDBRAIN:
+				#self.processPacketCloudbrain(packet)
 	
 	
 	##################################################################
@@ -522,7 +526,8 @@ server will start transmitting any headset data.'''
 		if 'rawEeg' in packet.keys():
 
 			# packet['channel_0'] = packet.pop('rawEeg')
-			packet['eeg'] = packet.pop('rawEeg')
+			#packet['eeg'] = packet.pop('rawEeg')
+			packet['eeg'] = packet['rawEeg']
 
 			packet['poorSignalLevel'] = self.data['poorSignalLevel']
 			packet['attention'] = self.data['attention']
@@ -578,7 +583,9 @@ server will start transmitting any headset data.'''
 
 				if self.DEBUG > 1:
 					print self.data_buffer
+				
 				self.data_buffer = []
+				
 				if self.DEBUG > 1:
 					print "Publishing:",
 					print self.routing_key

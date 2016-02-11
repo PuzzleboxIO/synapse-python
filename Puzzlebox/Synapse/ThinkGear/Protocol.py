@@ -14,7 +14,7 @@ Last Update: 2016.02.10
 __todo__ = """
 
  - When a "MindSet" is configured as "MindWave" hardware:
-   File "/home/sc/development/jigsaw/trunk/Puzzlebox/Synapse/Protocol.py", line 868, in run
+   File "jigsaw-python/Puzzlebox/Synapse/Protocol.py", line 868, in run
    self.device.device.write('\xc1')
 
  - needs to handle:
