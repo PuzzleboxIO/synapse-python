@@ -1222,7 +1222,7 @@ class SerialDevice(Thread):
 					self.join()
 			except Exception, e:
 				if self.DEBUG:
-					print "ERROR: Protocol failed to call QtCore.QThread.quit(self) in exitThread():",
+					print "ERROR: Protocol failed to exitThread():",
 					print e
 	
 	
