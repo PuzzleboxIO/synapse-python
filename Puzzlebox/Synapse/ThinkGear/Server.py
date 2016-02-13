@@ -11,7 +11,9 @@ __changelog__ = """\
 Last Update: 2014.02.12
 """
 
-### IMPORTS ###
+#####################################################################
+# Imports
+#####################################################################
 
 import os, sys, time
 import math
@@ -37,15 +39,13 @@ if not configuration.ENABLE_PYSIDE:
 
 
 if configuration.ENABLE_CLOUDBRAIN:
-	from brainsquared.publishers.PikaPublisher import PikaPublisher
+	#from brainsquared.publishers.PikaPublisher import PikaPublisher
+	import Puzzlebox.Synapse.Cloudbrain.Publisher as cloudbrain_publisher
 
 
 import Puzzlebox.Synapse.Server as synapse_server
 import Puzzlebox.Synapse.ThinkGear.Protocol as thinkgear_protocol
-import Puzzlebox.Synapse.Cloudbrain.Publisher as cloudbrain_publisher
 
-
-#from brainsquared.modules.sources import ThinkGearConnector as NeuroskyConnector
 
 
 #####################################################################
@@ -244,56 +244,6 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 					parent=None)
 			
 			self.cloudbrain_publisher.start()
-			
-			
-			#self.attention_threshold = 70
-
-			#self.data = {
-				#'poorSignalLevel': 200, 'attention': 0, 'meditation': 0, 'delta': 0,
-				#'theta': 0, 'lowAlpha': 0, 'highAlpha': 0, 'lowBeta': 0, 'highBeta': 0,
-				#'lowGamma': 0, 'highGamma': 0, 'label': 0
-			#}
-
-			#self.rabbitmq_host = rabbitmq_host
-			#self.rabbitmq_username = rabbitmq_username
-			#self.rabbitmq_password = rabbitmq_password
-
-			#self.publisher_username = publisher_username
-			#self.publisher_device = publisher_device
-			#self.publisher_metric = publisher_metric
-
-			## Send data efficiently in one packet
-			#self.buffer_size = 10
-			#self.data_buffer = []
-			#self.routing_key = "%s:%s:%s" % (self.publisher_username, self.publisher_device, self.publisher_metric)
-			#self.pub = PikaPublisher(self.rabbitmq_host, self.rabbitmq_username, self.rabbitmq_password)
-			#self.pub.connect()
-			#self.pub.register(self.routing_key)
-
-			## Also send each metric individually in cloudbrain format
-			#self.metrics = ['timestamp', 'eeg', 'poorSignalLevel', 'attention', \
-			                #'meditation', 'delta', 'theta', 'lowAlpha', 'highAlpha', \
-			                #'lowBeta', 'highBeta', 'lowGamma', 'highGamma']
-			#self.publishers = {}
-			#self.routing_keys = {}
-			#for metric in self.metrics:
-				#self.routing_keys[metric] = "%s:neurosky:%s" % (self.publisher_username, metric)
-				#self.publishers[metric] = PikaPublisher(self.rabbitmq_host,
-				                                        #self.rabbitmq_username,
-				                                        #self.rabbitmq_password)
-
-				#self.publishers[metric].connect()
-				#self.publishers[metric].register(self.routing_keys[metric])
-
-			## Send FFT
-			#self.fft_routing_key = "%s:%s:%s" % (self.publisher_username, self.publisher_device, "fft")
-			#self.fft_pub = PikaPublisher(self.rabbitmq_host, self.rabbitmq_username, self.rabbitmq_password)
-			#self.fft_pub.connect()
-			#self.fft_pub.register(self.fft_routing_key)
-
-			## Final setup
-			#self.configureEEG()
-			#displayCSVHeader()
 	
 	
 	##################################################################
@@ -540,107 +490,6 @@ server will start transmitting any headset data.'''
 	
 	##################################################################
 	
-	#def processPacketCloudbrain(self, packet):
-		
-		#if 'rawEeg' in packet.keys():
-
-			## packet['channel_0'] = packet.pop('rawEeg')
-			##packet['eeg'] = packet.pop('rawEeg')
-			#packet['eeg'] = packet['rawEeg']
-
-			#packet['poorSignalLevel'] = self.data['poorSignalLevel']
-			#packet['attention'] = self.data['attention']
-			#packet['meditation'] = self.data['meditation']
-			#packet['delta'] = self.data['delta']
-			#packet['theta'] = self.data['theta']
-			#packet['lowAlpha'] = self.data['lowAlpha']
-			#packet['highAlpha'] = self.data['highAlpha']
-			#packet['lowBeta'] = self.data['lowBeta']
-			#packet['highBeta'] = self.data['highBeta']
-			#packet['lowGamma'] = self.data['lowGamma']
-			#packet['highGamma'] = self.data['highGamma']
-			#packet['label'] = self.data['label']
-
-			## TODO Restore for Cloudbrain compatability
-			##if self.DEBUG > 1:
-				##print packet
-			##else:
-				##displayCSV(packet)
-
-			#if len(self.data_buffer) > self.buffer_size:
-				## Publish efficiently in one packet
-				##self.pub.publish(self.routing_key, self.data_buffer)
-
-				## Also send each metric individually in cloudbrain format
-				#for metric in self.metrics:
-					#buffer_out = []
-					#for packet in self.data_buffer:
-						#metric_data = {
-						#"timestamp": packet["timestamp"],
-						#"channel_0": packet[metric]
-						#}
-						#buffer_out.append(metric_data)
-					#self.publishers[metric].publish(self.routing_keys[metric],
-																#buffer_out)
-
-				## Also send fft
-				#buffer_out = []
-				#for packet in self.data_buffer:
-					#metric_data = {
-						#"timestamp": packet["timestamp"],
-						#"channel_0": packet['lowAlpha'],
-						#"channel_1": packet['highAlpha'],
-						#"channel_2": packet['lowBeta'],
-						#"channel_3": packet['highBeta'],
-						#"channel_4": packet['lowGamma'],
-						#"channel_5": packet['highGamma'],
-						#"channel_6": packet['delta'],
-						#"channel_7": self.data['theta'],
-					#}
-					#buffer_out.append(metric_data)
-				#self.fft_pub.publish(self.fft_routing_key, buffer_out)
-
-				#if self.DEBUG > 1:
-					#print self.data_buffer
-				
-				#self.data_buffer = []
-				
-				#if self.DEBUG > 1:
-					#print "Publishing:",
-					#print self.routing_key
-			#else:
-				#self.data_buffer.append(packet)
-
-		#else:
-
-			#if 'poorSignalLevel' in packet.keys():
-				#self.data['poorSignalLevel'] = packet['poorSignalLevel']
-
-			#if 'eegPower' in packet.keys():
-				#self.data['delta'] = packet['eegPower']['delta']
-				#self.data['theta'] = packet['eegPower']['theta']
-				#self.data['lowAlpha'] = packet['eegPower']['lowAlpha']
-				#self.data['highAlpha'] = packet['eegPower']['highAlpha']
-				#self.data['lowBeta'] = packet['eegPower']['lowBeta']
-				#self.data['highBeta'] = packet['eegPower']['highBeta']
-				#self.data['lowGamma'] = packet['eegPower']['lowGamma']
-				#self.data['highGamma'] = packet['eegPower']['highGamma']
-
-			#if 'eSense' in packet.keys():
-				#if 'attention' in packet['eSense'].keys():
-					#self.data['attention'] = packet['eSense']['attention']
-
-					#if self.data['attention'] >= self.attention_threshold:
-						#self.data['label'] = 1
-					#else:
-						#self.data['label'] = 0
-
-				#if 'meditation' in packet['eSense'].keys():
-					#self.data['meditation'] = packet['eSense']['meditation']
-	
-	
-	##################################################################
-	
 	def updateStatus(self):
 		
 		# Craft a simulated data packet
@@ -848,47 +697,4 @@ server will start transmitting any headset data.'''
 	#def stop(self):
 		
 		#self.exitThread()
-
-
-##################################################################
-# Functions
-##################################################################
-
-def displayCSVHeader():
-	print "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" % (
-		'timestamp',
-		'eeg',
-		'poorSignalLevel',
-		'attention',
-		'meditation',
-		'delta',
-		'theta',
-		'lowAlpha',
-		'highAlpha',
-		'lowBeta',
-		'highBeta',
-		'lowGamma',
-		'highGamma',
-		'label',
-	)
-
-
-
-def displayCSV(packet):
-	print "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" % (
-		packet['timestamp'],
-		packet['eeg'],
-		packet['poorSignalLevel'],
-		packet['attention'],
-		packet['meditation'],
-		packet['delta'],
-		packet['theta'],
-		packet['lowAlpha'],
-		packet['highAlpha'],
-		packet['lowBeta'],
-		packet['highBeta'],
-		packet['lowGamma'],
-		packet['highGamma'],
-		packet['label'],
-	)
  

@@ -244,7 +244,7 @@ FLASH_SOCKET_POLICY_FILE = '''<?xml version="1.0"?>
 RABBITMQ_HOST = 'localhost'
 RABBITMQ_USERNAME = 'guest'
 RABBITMQ_PASSWORD = 'guest'
-PUBLISHER_USERNAME = 'brainsquared'
+PUBLISHER_USERNAME = 'user_0'
 PUBLISHER_DEVICE = 'neurosky'
 PUBLISHER_METRIC = 'mindwave'
 

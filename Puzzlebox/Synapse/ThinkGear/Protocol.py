@@ -8,7 +8,7 @@
 # Author: Steve Castellotti <sc@puzzlebox.io>
 
 __changelog__ = """
-Last Update: 2016.02.10
+Last Update: 2016.02.12
 """
 
 __todo__ = """
@@ -101,8 +101,6 @@ except:
 	class Configuration():
 		
 		def __init__(self):
-		
-			# Ported from Puzzlebox.Synapse.Configuration
 			
 			self.DEBUG = 1
 			
@@ -134,14 +132,11 @@ if configuration.ENABLE_QT:
 		try:
 			import PySide
 			from PySide import QtCore
-			#import QtCore.QThread as Thread
 			Thread = PySide.QtCore.QThread
 		except Exception, e:
 			print "ERROR: Exception importing PySide:",
 			print e
 			configuration.ENABLE_PYSIDE = False
-			#print "INFO: [Synapse:ThinkGear:Protocol] Using PyQt4 module"
-			#from PyQt4 import QtCore
 		else:
 			print "INFO: [Synapse:ThinkGear:Protocol] Using PySide module"
 	
@@ -152,23 +147,11 @@ if configuration.ENABLE_QT:
 			from PyQt4 import QtCore
 		except:
 			configuration.ENABLE_QT = False
-			#import threading
-			#Thread = threading.Thread
 
 #else:
 if not configuration.ENABLE_QT:
-	#import threading
-	#import threading.Thread as Thread
 	import threading
 	Thread = threading.Thread
-
-#if not configuration.ENABLE_PYSIDE:
-	#try:
-		#print "INFO: [Synapse:ThinkGear:Protocol] Using PyQt4 module"
-		#from PyQt4 import QtCore
-	#except:
-		#import threading
-		#Thread = threading.Thread
 
 
 #####################################################################
