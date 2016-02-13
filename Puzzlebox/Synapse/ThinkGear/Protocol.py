@@ -2,13 +2,13 @@
 
 # Copyright Puzzlebox Productions, LLC (2010-2016)
 #
-# This code is released under the GNU Affero Pulic License (AGPL) version 3
-# For more information please refer to https://www.gnu.org/licenses/agpl.html
+# This code is released under the GNU Lesser Public License (LGPL) version 3
+# For more information please refer to https://www.gnu.org/licenses/lgpl.html
 #
 # Author: Steve Castellotti <sc@puzzlebox.io>
 
 __changelog__ = """
-Last Update: 2016.02.12
+Last Update: 2016.02.13
 """
 
 __todo__ = """
@@ -83,7 +83,10 @@ Linux Bluetooth serial protocol profile example:
     rfcomm connect rfcomm0 00:13:EF:00:1B:FE 3
 """
 
-### IMPORTS ###
+#####################################################################
+# Imports
+#####################################################################
+
 import sys, time
 import signal
 import serial
@@ -202,8 +205,6 @@ DEBUG_PACKET_COUNT = 1024
 # Classes
 #####################################################################
 
-#class puzzlebox_synapse_protocol_thinkgear(QtCore.QThread):
-#class puzzlebox_synapse_protocol_thinkgear(threading.Thread):
 class puzzlebox_synapse_protocol_thinkgear(Thread):
 	
 	def __init__(self, log, \
@@ -212,12 +213,6 @@ class puzzlebox_synapse_protocol_thinkgear(Thread):
 			       DEBUG=DEBUG, \
 			       parent=None):
 		
-		##QtCore.QThread.__init__(self,parent)
-		##threading.Thread.__init__ (self)
-		#if configuration.ENABLE_PYSIDE:
-			#Thread.__init__ (self, parent)
-		#else:
-			#Thread.__init__ (self)
 		try:
 			QtCore.QThread.__init__(self, parent)
 		except:

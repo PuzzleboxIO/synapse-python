@@ -8,7 +8,7 @@
 # Author: Steve Castellotti <sc@puzzlebox.io>
 
 __changelog__ = """\
-Last Update: 2014.02.12
+Last Update: 2014.02.13
 """
 
 #####################################################################
@@ -39,14 +39,10 @@ if not configuration.ENABLE_PYSIDE:
 
 
 if configuration.ENABLE_CLOUDBRAIN:
-	#from brainsquared.publishers.PikaPublisher import PikaPublisher
 	import Puzzlebox.Synapse.Cloudbrain.Publisher as cloudbrain_publisher
-
 
 import Puzzlebox.Synapse.Server as synapse_server
 import Puzzlebox.Synapse.ThinkGear.Protocol as thinkgear_protocol
-
-
 
 #####################################################################
 # Globals
