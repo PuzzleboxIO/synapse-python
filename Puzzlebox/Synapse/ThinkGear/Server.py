@@ -299,12 +299,15 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 	
 	def emulationEvent(self):
 		
-		self.updateStatus()
+		packet = self.updateStatus()
 		
-		if COMMUNICATION_MODE == 'Emit Signal':
-			self.emitSendPacketSignal()
-		else:
-			self.sendPacketQueue()
+		#if COMMUNICATION_MODE == 'Emit Signal':
+			#self.emitSendPacketSignal()
+		#else:
+			#self.sendPacketQueue()
+		
+		
+		self.processPacketThinkGear(packet)
 	
 	
 	##################################################################
@@ -490,6 +493,10 @@ server will start transmitting any headset data.'''
 			
 			if configuration.ENABLE_JIGSAW_JOYSTICK:
 				if 'eSense' in packet.keys():
+					if self.DEBUG > 2:
+						print "--> Processing Jigsaw Joystick Packet:", 
+						print packet
+					
 					self.jigsaw_joystick_publisher.appendPacket(packet)
 			
 			if COMMUNICATION_MODE == 'Emit Signal':
@@ -530,6 +537,9 @@ server will start transmitting any headset data.'''
 			self.packet_queue.append(packet)
 			
 			self.incrementPacketCount()
+		
+		
+		return (packet)
 	
 	
 	##################################################################
