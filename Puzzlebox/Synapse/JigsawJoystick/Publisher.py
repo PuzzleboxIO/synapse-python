@@ -162,10 +162,22 @@ class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 		
 		packet = '\x20' + int2bytes(value)
 		
-		self.sock.send(packet)
-
-
-##################################################################
+		try:
+			self.sock.send(packet)
+		except Exception, e:
+			if self.DEBUG:
+				print "WARNING:",
+				print e
+			try:
+				self.sock.close()
+				self.sock.connect((server_host, server_port))
+			except Exception, e:
+				if self.DEBUG:
+					print "ERROR:",
+					print e
+	
+	
+	##################################################################
 
 	def run(self):
 		
