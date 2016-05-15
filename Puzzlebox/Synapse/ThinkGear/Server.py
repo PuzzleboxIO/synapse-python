@@ -41,6 +41,9 @@ if not configuration.ENABLE_PYSIDE:
 if configuration.ENABLE_CLOUDBRAIN:
 	import Puzzlebox.Synapse.Cloudbrain.Publisher as cloudbrain_publisher
 
+if configuration.ENABLE_JIGSAW_JOYSTICK:
+	import Puzzlebox.Synapse.JigsawJoystick.Publisher as jigsaw_joystick_publisher
+	
 import Puzzlebox.Synapse.Server as synapse_server
 import Puzzlebox.Synapse.ThinkGear.Protocol as thinkgear_protocol
 
@@ -183,6 +186,7 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 		self.serial_device = None
 		self.protocol = None
 		self.cloudbrain_publisher = None
+		self.jigsaw_joystick_publisher = None
 		
 		self.connect(self, \
 		             QtCore.SIGNAL("sendPacket()"), \
@@ -240,6 +244,21 @@ class puzzlebox_synapse_server_thinkgear(synapse_server.puzzlebox_synapse_server
 					parent=None)
 			
 			self.cloudbrain_publisher.start()
+		
+		
+		# Jigsaw Joystick
+		
+		if configuration.ENABLE_JIGSAW_JOYSTICK:
+			
+			self.jigsaw_joystick_publisher = \
+				jigsaw_joystick_publisher.puzzlebox_synapse_jigsaw_joystick_publisher( \
+					log, \
+					server_host=configuration.JIGSAW_HARDWARE_JOYSTICK_HOST,
+					server_port=configuration.JIGSAW_HARDWARE_JOYSTICK_PORT,
+					DEBUG=DEBUG, \
+					parent=None)
+			
+			self.jigsaw_joystick_publisher.start()
 	
 	
 	##################################################################
@@ -469,6 +488,11 @@ server will start transmitting any headset data.'''
 				#self.cloudbrain_publisher.processPacketCloudbrain(packet)
 				self.cloudbrain_publisher.appendPacket(packet)
 			
+			if configuration.ENABLE_JIGSAW_JOYSTICK:
+				if 'eSense' in packet.keys():
+					print packet
+					self.jigsaw_joystick_publisher.appendPacket(packet)
+			
 			if COMMUNICATION_MODE == 'Emit Signal':
 				self.emitSendPacketSignal()
 			
@@ -533,6 +557,9 @@ server will start transmitting any headset data.'''
 		
 		if self.cloudbrain_publisher != None:
 			self.cloudbrain_publisher.exitThread()
+		
+		if self.jigsaw_joystick_publisher != None:
+			self.jigsaw_joystick_publisher.exitThread()
 		
 		self.configureEEG()
 	
@@ -677,6 +704,9 @@ server will start transmitting any headset data.'''
 		
 		if self.cloudbrain_publisher != None:
 			self.cloudbrain_publisher.exitThread()
+		
+		if self.jigsaw_joystick_publisher != None:
+			self.jigsaw_joystick_publisher.exitThread()
 		
 		self.socket.close()
 		

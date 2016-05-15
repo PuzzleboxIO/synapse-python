@@ -7,7 +7,7 @@
 # For more information please refer to https://www.gnu.org/licenses/agpl.html
 
 __changelog__ = """
-Last Update: 2016.02.13
+Last Update: 2016.05.14
 """
 
 import os, sys
@@ -114,6 +114,9 @@ EMOTIV_SERVER_PORT_EMOCOMPOSER = 1726
 
 MUSE_SERVER_HOST = '127.0.0.1'
 MUSE_SERVER_PORT = 5001
+
+JIGSAW_HARDWARE_JOYSTICK_HOST = '127.0.0.1'
+JIGSAW_HARDWARE_JOYSTICK_PORT = 51914
 
 #####################################################################
 # ThinkGear Device configuration
@@ -253,7 +256,14 @@ PUBLISHER_METRIC = 'mindwave'
 # Cloudbrain
 #####################################################################
 
-ENABLE_CLOUDBRAIN = True
+ENABLE_CLOUDBRAIN = False
+
+
+#####################################################################
+# Jigsaw Joystick
+#####################################################################
+
+ENABLE_JIGSAW_JOYSTICK = True
 
 
 #####################################################################
