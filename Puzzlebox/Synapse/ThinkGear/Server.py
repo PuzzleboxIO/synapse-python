@@ -8,7 +8,7 @@
 # Author: Steve Castellotti <sc@puzzlebox.io>
 
 __changelog__ = """\
-Last Update: 2014.02.13
+Last Update: 2016.05.14
 """
 
 #####################################################################
@@ -490,7 +490,6 @@ server will start transmitting any headset data.'''
 			
 			if configuration.ENABLE_JIGSAW_JOYSTICK:
 				if 'eSense' in packet.keys():
-					print packet
 					self.jigsaw_joystick_publisher.appendPacket(packet)
 			
 			if COMMUNICATION_MODE == 'Emit Signal':
@@ -502,10 +501,6 @@ server will start transmitting any headset data.'''
 				if (self.parent != None):
 					#self.parent.processPacketThinkGear(packet)
 					self.parent.processPacketEEG(packet)
-			
-			
-			#if configuration.ENABLE_CLOUDBRAIN:
-				#self.processPacketCloudbrain(packet)
 	
 	
 	##################################################################

@@ -36,13 +36,6 @@ except:
 			self.ENABLE_QT = False
 			self.ENABLE_PYSIDE = False
 			
-			#self.RABBITMQ_HOST = 'localhost'
-			#self.RABBITMQ_USERNAME = 'guest'
-			#self.RABBITMQ_PASSWORD = 'guest'
-			#self.PUBLISHER_USERNAME = 'user_0'
-			#self.PUBLISHER_DEVICE = 'neurosky'
-			#self.PUBLISHER_METRIC = 'mindwave'
-			
 			self.server_host = configuration.JIGSAW_HARDWARE_JOYSTICK_HOST
 			self.server_port = configuration.JIGSAW_HARDWARE_JOYSTICK_PORT
 	
@@ -88,13 +81,6 @@ if not configuration.ENABLE_QT:
 class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 
 	def __init__(self, log, \
-		          #rabbitmq_host=configuration.RABBITMQ_HOST,
-		          #rabbitmq_username=configuration.RABBITMQ_USERNAME,
-		          #rabbitmq_password=configuration.RABBITMQ_PASSWORD,
-		          #publisher_username=configuration.PUBLISHER_USERNAME,
-		          #publisher_device=configuration.PUBLISHER_DEVICE,
-		          #publisher_metric=configuration.PUBLISHER_METRIC,
-		          #displayPacketCSV=False,
 		          server_host=configuration.JIGSAW_HARDWARE_JOYSTICK_HOST,
 		          server_port=configuration.JIGSAW_HARDWARE_JOYSTICK_PORT,
 		          DEBUG=configuration.DEBUG, \
@@ -112,7 +98,6 @@ class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 
 		self.keep_running = True
 		self.packet_queue = []
-		#self.displayPacketCSV = displayPacketCSV
 
 
 		self.server_host=server_host
@@ -123,61 +108,8 @@ class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 		
 		self.sock.settimeout(10)
 		self.sock.connect((server_host, server_port))
-
-
-		#self.rabbitmq_host = rabbitmq_host
-		#self.rabbitmq_username = rabbitmq_username
-		#self.rabbitmq_password = rabbitmq_password
-
-		#self.publisher_username = publisher_username
-		#self.publisher_device = publisher_device
-		#self.publisher_metric = publisher_metric
-
-		#self.buffer_sizes = {}
-		#self.data_buffers = {}
-
-		# Send each metric individually in cloudbrain format
-		#self.metrics = ['eeg', 'poorSignalLevel', 'attention', 'meditation', \
-		                #'delta', 'theta', 'lowAlpha', 'highAlpha', \
-		                #'lowBeta', 'highBeta', 'lowGamma', 'highGamma']
-		
-		#self.publishers = {}
-		#self.routing_keys = {}
-		
-		#for metric in self.metrics:
-			#routing_key = "%s:%s:%s" % (self.publisher_username, \
-			                            #self.publisher_device, \
-			                            #metric)
-			
-			#self.routing_keys[metric] = routing_key
-			
-			#self.publishers[metric] = PikaPublisher(
-			                             #self.rabbitmq_host,
-			                             #self.rabbitmq_username,
-			                             #self.rabbitmq_password)
-			
-			#self.publishers[metric].connect()
-			#self.publishers[metric].register(self.routing_keys[metric])
-			
-			
-			#self.data_buffers[metric] = []
-			
-			
-			#if metric == 'eeg':
-				#if (self.publisher_device == 'neurosky'):
-					#self.buffer_sizes[metric] = 128
-				#else:
-					#self.buffer_sizes[metric] = 10
-			#else:
-				#if (self.publisher_device == 'neurosky'):
-					#self.buffer_sizes[metric] = 1
-				#else:
-					#self.buffer_sizes[metric] = 1
-		
-		#if self.DEBUG > 1:
-			#displayCSVHeader()
-
-
+	
+	
 	##################################################################
 	
 	def appendPacket(self, packet):
@@ -189,94 +121,19 @@ class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 	
 	def processPacketJoystick(self, packet):
 		
-		print "processPacketJoystick"
-		
-		#if 'rawEeg' in packet.keys():
+		#if 'poorSignalLevel' in packet.keys():
 			
 			#metric_packet = {}
 			#metric_packet['timestamp'] = packet['timestamp']
-			#metric_packet['channel_0'] = packet['rawEeg']
+			#metric_packet['channel_0'] = packet['poorSignalLevel']
 			
-			#self.data_buffers['eeg'].append(metric_packet)
+			#self.publishers['poorSignalLevel'].publish(
+				#self.routing_keys['poorSignalLevel'],
+				#[metric_packet])
 			
-			#if self.DEBUG > 2:
-				#print metric_packet
-			
-			##if self.displayPacketCSV:
-				##if self.DEBUG > 1:
-					##displayCSV(metric_packet)
-			
-			#if len(self.data_buffers['eeg']) > self.buffer_sizes['eeg']:
-				
-				#self.publishers['eeg'].publish( \
-					#self.routing_keys['eeg'], \
-					#self.data_buffers['eeg'])
-				
-				#self.data_buffers['eeg'] = []
-				
-			#else:
-				#self.data_buffers['eeg'].append(metric_packet)
-		
-		
-		#else:
-			
-			#if 'poorSignalLevel' in packet.keys():
-				
-				#metric_packet = {}
-				#metric_packet['timestamp'] = packet['timestamp']
-				#metric_packet['channel_0'] = packet['poorSignalLevel']
-				
-				#self.publishers['poorSignalLevel'].publish(
-					#self.routing_keys['poorSignalLevel'],
-					#[metric_packet])
-				
-				#if self.displayPacketCSV:
-					#if self.DEBUG > 1:
-						#displayCSV(metric_packet)
-			
-			
-			#if 'eegPower' in packet.keys():
-				
-				#self.publishers['delta'].publish(
-					#self.routing_keys['delta'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eegPower']['delta']
-					#}] )
-				#self.publishers['theta'].publish(
-					#self.routing_keys['theta'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eegPower']['theta']
-					#}] )
-				#self.publishers['lowAlpha'].publish(
-					#self.routing_keys['lowAlpha'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eegPower']['lowAlpha']
-					#}] )
-				#self.publishers['highAlpha'].publish(
-					#self.routing_keys['highAlpha'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eegPower']['highAlpha']
-					#}] )
-				#self.publishers['lowBeta'].publish(
-					#self.routing_keys['lowBeta'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eegPower']['lowBeta']
-					#}] )
-				#self.publishers['highBeta'].publish(
-					#self.routing_keys['highBeta'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eegPower']['highBeta']
-					#}] )
-				#self.publishers['lowGamma'].publish(
-					#self.routing_keys['lowGamma'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eegPower']['lowGamma']
-					#}] )
-				#self.publishers['highGamma'].publish(
-					#self.routing_keys['highGamma'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eegPower']['highGamma']
-					#}] )
+			#if self.displayPacketCSV:
+				#if self.DEBUG > 1:
+					#displayCSV(metric_packet)
 			
 			
 		if 'eSense' in packet.keys():
@@ -284,12 +141,7 @@ class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 			if 'attention' in packet['eSense'].keys():
 				
 				self.publish_control_packet(packet['eSense']['attention'])
-				
-				#self.publishers['attention'].publish(
-					#self.routing_keys['attention'], [{
-						#'timestamp': packet['timestamp'], \
-						#'channel_0': packet['eSense']['attention']
-					#}] )
+			
 			
 			#if 'meditation' in packet['eSense'].keys():
 				
@@ -298,13 +150,13 @@ class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 						#'timestamp': packet['timestamp'], \
 						#'channel_0': packet['eSense']['meditation']
 					#}] )
-
-
+	
+	
 	##################################################################
 	
 	def publish_control_packet(self, value):
 		
-		if self.DEBUG:
+		if self.DEBUG > 1:
 			print "--> publish_control_packet:",
 			print value
 		
@@ -372,39 +224,3 @@ def hex2bytes(h):
 def byte2int(b):
 	return int(b.encode('hex'), 16)
 
-#def displayCSVHeader():
-	#print "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" % (
-		#'timestamp',
-		#'eeg',
-		#'poorSignalLevel',
-		#'attention',
-		#'meditation',
-		#'delta',
-		#'theta',
-		#'lowAlpha',
-		#'highAlpha',
-		#'lowBeta',
-		#'highBeta',
-		#'lowGamma',
-		#'highGamma',
-		#'label',
-	#)
-
-
-#def displayCSV(packet):
-	#print "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" % (
-		#packet['timestamp'],
-		#packet['eeg'],
-		#packet['poorSignalLevel'],
-		#packet['attention'],
-		#packet['meditation'],
-		#packet['delta'],
-		#packet['theta'],
-		#packet['lowAlpha'],
-		#packet['highAlpha'],
-		#packet['lowBeta'],
-		#packet['highBeta'],
-		#packet['lowGamma'],
-		#packet['highGamma'],
-		#packet['label'],
-	#)
