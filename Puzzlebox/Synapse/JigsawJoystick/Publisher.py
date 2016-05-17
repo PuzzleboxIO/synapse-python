@@ -107,7 +107,7 @@ class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		
 		self.sock.settimeout(10)
-		self.sock.connect((server_host, server_port))
+		self.sock.connect((self.server_host, self.server_port))
 	
 	
 	##################################################################
@@ -170,7 +170,7 @@ class puzzlebox_synapse_jigsaw_joystick_publisher(Thread):
 				print e
 			try:
 				self.sock.close()
-				self.sock.connect((server_host, server_port))
+				self.sock.connect((self.server_host, self.server_port))
 			except Exception, e:
 				if self.DEBUG:
 					print "ERROR:",
